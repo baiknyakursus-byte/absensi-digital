@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LKP Zakiyah - Sistem Absensi Digital</title>
+<meta name="theme-color" content="#2563eb">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/plus-jakarta-sans@5.0.3/index.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.0/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --primary:#2563eb;
+  --primary-dark:#1d4ed8;
+  --primary-light:#3b82f6;
+  --accent:#10b981;
+  --accent-dark:#059669;
+  --bg:#f1f5f9;
+  --card:#ffffff;
+  --text:#0f172a;
+  --text-muted:#64748b;
+  --border:#e2e8f0;
+  --danger:#ef4444;
+  --warning:#f59e0b;
+  --shadow:0 10px 30px rgba(37,99,235,.08);
+  --glass-bg:rgba(255,255,255,.7);
+  --glass-border:rgba(255,255,255,.4);
+}
+[data-theme="dark"]{
+  --bg:#0b1220;
+  --card:#111a2e;
+  --text:#e2e8f0;
+  --text-muted:#94a3b8;
+  --border:#1e293b;
+  --glass-bg:rgba(17,26,46,.7);
+  --glass-border:rgba(255,255,255,.08);
+  --shadow:0 10px 30px rgba(0,0,0,.4);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  transition:background .3s,color .3s;
+}
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(circle at 10% 20%,rgba(37,99,235,.15) 0%,transparent 40%),
+    radial-gradient(circle at 90% 80%,rgba(16,185,129,.12) 0%,transparent 40%);
+  pointer-events:none;z-index:0;
+}
+.hidden{display:none !important}
+button{cursor:pointer;font-family:inherit;border:none;outline:none}
+input,select{font-family:inherit;outline:none}
+
+/* LOADER */
+#loader{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;flex-direction:column;gap:20px;
+  transition:opacity .4s;
+}
+.loader-logo{
+  width:80px;height:80px;border-radius:20px;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  display:flex;align-items:center;justify-content:center;
+  color:white;font-size:40px;font-weight:800;
+  animation:pulse 1.5s infinite;
+}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.loader-text{color:var(--text-muted);font-size:14px;letter-spacing:2px}
+.loader-bar{width:200px;height:3px;background:var(--border);border-radius:3px;overflow:hidden}
+.loader-bar::after{content:'';display:block;width:40%;height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));animation:load 1.2s infinite}
+@keyframes load{0%{margin-left:-40%}100%{margin-left:100%}}
+
+/* LOGIN */
+.login-wrap{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;position:relative;z-index:1;
+}
+.login-card{
+  width:100%;max-width:420px;
+  background:var(--glass-bg);
+  backdrop-filter:blur(20px);
+  border:1px solid var(--glass-border);
+  border-radius:24px;
+  padding:40px 32px;
+  box-shadow:var(--shadow);
+}
+.login-logo{
+  width:80px;height:80px;margin:0 auto 20px;
+  border-radius:20px;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  display:flex;align-items:center;justify-content:center;
+  color:white;font-size:36px;font-weight:800;
+  box-shadow:0 10px 30px rgba(37,99,235,.3);
+}
+.login-title{text-align:center;font-size:22px;font-weight:700;margin-bottom:6px}
+.login-sub{text-align:center;color:var(--text-muted);font-size:13px;margin-bottom:28px}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text)}
+.form-input{
+  width:100%;padding:12px 14px;
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:12px;font-size:14px;color:var(--text);
+  transition:all .2s;
+}
+.form-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.btn{
+  padding:12px 20px;border-radius:12px;font-weight:600;font-size:14px;
+  display:inline-flex;align-items:center;gap:8px;justify-content:center;
+  transition:all .2s;
+}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;width:100%}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 20px rgba(37,99,235,.3)}
+.btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:white}
+.btn-accent:hover{transform:translateY(-2px);box-shadow:0 10px 20px rgba(16,185,129,.3)}
+.btn-danger{background:var(--danger);color:white}
+.btn-ghost{background:transparent;color:var(--text);border:1.5px solid var(--border)}
+.btn-ghost:hover{background:var(--border)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+
+/* APP LAYOUT */
+.app{display:flex;min-height:100vh;position:relative;z-index:1}
+.sidebar{
+  width:260px;background:var(--glass-bg);
+  backdrop-filter:blur(20px);
+  border-right:1px solid var(--glass-border);
+  padding:20px 16px;
+  position:fixed;left:0;top:0;bottom:0;
+  overflow-y:auto;z-index:100;
+  transition:transform .3s;
+}
+.sidebar-header{display:flex;align-items:center;gap:12px;padding:8px 10px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.sidebar-logo{
+  width:44px;height:44px;border-radius:12px;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  display:flex;align-items:center;justify-content:center;
+  color:white;font-weight:800;font-size:20px;flex-shrink:0;
+}
+.sidebar-title{font-size:15px;font-weight:700;line-height:1.2}
+.sidebar-sub{font-size:11px;color:var(--text-muted)}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:10px;
+  color:var(--text-muted);font-size:14px;font-weight:500;
+  margin-bottom:2px;cursor:pointer;transition:all .2s;
+}
+.nav-item:hover{background:var(--border);color:var(--text)}
+.nav-item.active{
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  color:white;box-shadow:0 6px 16px rgba(37,99,235,.3);
+}
+.nav-item .material-icons-round{font-size:20px}
+.nav-section{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;padding:14px 12px 6px;font-weight:700}
+
+.main{flex:1;margin-left:260px;padding:20px 28px;min-width:0}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:24px;gap:16px;flex-wrap:wrap;
+}
+.topbar-title{font-size:22px;font-weight:700}
+.topbar-sub{font-size:13px;color:var(--text-muted);margin-top:2px}
+.topbar-actions{display:flex;gap:10px;align-items:center}
+.icon-btn{
+  width:40px;height:40px;border-radius:12px;
+  background:var(--glass-bg);border:1px solid var(--glass-border);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text);transition:all .2s;
+}
+.icon-btn:hover{background:var(--border)}
+.menu-toggle{display:none}
+
+/* CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{
+  background:var(--glass-bg);backdrop-filter:blur(20px);
+  border:1px solid var(--glass-border);
+  border-radius:18px;padding:20px;
+  box-shadow:var(--shadow);position:relative;overflow:hidden;
+  transition:transform .2s;
+}
+.stat-card:hover{transform:translateY(-4px)}
+.stat-icon{
+  width:48px;height:48px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  color:white;font-size:24px;margin-bottom:12px;
+}
+.stat-icon.blue{background:linear-gradient(135deg,#3b82f6,#2563eb)}
+.stat-icon.green{background:linear-gradient(135deg,#10b981,#059669)}
+.stat-icon.red{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.stat-icon.amber{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.stat-label{font-size:13px;color:var(--text-muted);margin-bottom:4px}
+.stat-value{font-size:28px;font-weight:700}
+.stat-change{font-size:12px;color:var(--accent);margin-top:4px}
+
+.card{
+  background:var(--glass-bg);backdrop-filter:blur(20px);
+  border:1px solid var(--glass-border);
+  border-radius:18px;padding:20px;
+  box-shadow:var(--shadow);margin-bottom:20px;
+}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.card-title{font-size:16px;font-weight:700}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--border);padding:12px;text-align:left;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);white-space:nowrap}
+td{padding:12px;border-top:1px solid var(--border);vertical-align:middle}
+tr:hover td{background:rgba(37,99,235,.03)}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(16,185,129,.15);color:var(--accent)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--danger)}
+.badge-amber{background:rgba(245,158,11,.15);color:var(--warning)}
+.badge-blue{background:rgba(37,99,235,.15);color:var(--primary)}
+
+/* FILTERS */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.filters select,.filters input{
+  padding:8px 12px;border-radius:10px;
+  background:var(--card);border:1px solid var(--border);
+  color:var(--text);font-size:13px;min-width:140px;
+}
+
+/* QR */
+.qr-container{
+  display:grid;grid-template-columns:1fr 1fr;gap:24px;
+}
+.qr-box{
+  background:var(--card);border-radius:18px;padding:24px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border:1px solid var(--border);
+}
+.qr-canvas{background:white;padding:16px;border-radius:12px;margin-bottom:16px}
+.qr-info{text-align:center;width:100%}
+.qr-timer{
+  font-size:32px;font-weight:700;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin:8px 0;
+}
+.qr-timer.expired{background:linear-gradient(135deg,#ef4444,#dc2626);-webkit-background-clip:text;background-clip:text}
+
+/* MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);
+  backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:1000;padding:20px;
+  animation:fadeIn .2s;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{
+  background:var(--card);border-radius:20px;
+  padding:24px;width:100%;max-width:480px;
+  max-height:90vh;overflow-y:auto;
+  animation:slideUp .3s;
+}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+
+/* SCAN PAGE */
+.scan-wrap{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;position:relative;z-index:1;
+}
+.scan-card{
+  width:100%;max-width:440px;
+  background:var(--glass-bg);backdrop-filter:blur(20px);
+  border:1px solid var(--glass-border);
+  border-radius:24px;padding:32px 28px;
+  box-shadow:var(--shadow);text-align:center;
+}
+.scan-logo{
+  width:90px;height:90px;margin:0 auto 16px;
+  border-radius:22px;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  display:flex;align-items:center;justify-content:center;
+  color:white;font-size:42px;font-weight:800;
+  box-shadow:0 10px 30px rgba(37,99,235,.3);
+}
+.scan-title{font-size:24px;font-weight:800;margin-bottom:4px;letter-spacing:1px}
+.scan-sub{color:var(--text-muted);font-size:13px;margin-bottom:24px}
+.scan-info{text-align:left;margin-bottom:20px}
+.scan-row{
+  display:flex;justify-content:space-between;
+  padding:10px 0;border-bottom:1px dashed var(--border);
+  font-size:14px;
+}
+.scan-row:last-child{border-bottom:none}
+.scan-label{color:var(--text-muted);font-weight:500}
+.scan-value{font-weight:600;text-align:right;max-width:60%}
+.btn-hadir{
+  width:100%;padding:18px;font-size:18px;font-weight:700;
+  background:linear-gradient(135deg,var(--accent),var(--accent-dark));
+  color:white;border-radius:16px;
+  box-shadow:0 10px 30px rgba(16,185,129,.4);
+  transition:all .2s;
+}
+.btn-hadir:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(16,185,129,.5)}
+.btn-hadir:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+.success-anim{
+  font-size:80px;animation:popIn .5s;
+}
+@keyframes popIn{0%{transform:scale(0);opacity:0}60%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+
+/* TOAST */
+.toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px}
+.toast{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:12px 16px;
+  box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;
+  min-width:260px;animation:slideIn .3s;
+}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.success{border-left:4px solid var(--accent)}
+.toast.error{border-left:4px solid var(--danger)}
+.toast.info{border-left:4px solid var(--primary)}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:16px}
+  .menu-toggle{display:flex}
+  .qr-container{grid-template-columns:1fr}
+}
+@media(max-width:500px){
+  .login-card,.scan-card{padding:28px 20px}
+  .stat-value{font-size:22px}
+  .topbar-title{font-size:18px}
+}
+
+/* Chart container */
+.chart-wrap{position:relative;height:280px}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+
+.empty{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.empty .material-icons-round{font-size:48px;opacity:.3;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-logo">Z</div>
+  <div class="loader-text">LKP ZAKIYAH</div>
+  <div class="loader-bar"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="login-logo">Z</div>
+    <div class="login-title">LKP Zakiyah Muara Enim</div>
+    <div class="login-sub">Sistem Absensi Digital - Login Instruktur</div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="loginEmail" placeholder="guru@zakiyah.id" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <span class="material-icons-round" style="font-size:18px">login</span>
+        Masuk
+      </button>
+    </form>
+    <div style="margin-top:20px;padding:14px;background:rgba(37,99,235,.08);border-radius:12px;font-size:12px;color:var(--text-muted)">
+      <div style="font-weight:600;color:var(--primary);margin-bottom:4px">🔑 Demo Akun:</div>
+      Email: <b>guru@zakiyah.id</b><br>
+      Password: <b>admin123</b>
+    </div>
+  </div>
+</div>
+
+<!-- SCAN PAGE (for students) -->
+<div id="scanPage" class="scan-wrap hidden">
+  <div class="scan-card">
+    <div class="scan-logo">Z</div>
+    <div class="scan-title">ABSENSI DIGITAL</div>
+    <div class="scan-sub">LKP Zakiyah Muara Enim</div>
+    <div id="scanContent"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appPage" class="app hidden">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">Z</div>
+      <div>
+        <div class="sidebar-title">LKP Zakiyah</div>
+        <div class="sidebar-sub">Muara Enim</div>
+      </div>
+    </div>
+    <div class="nav-section">Menu Utama</div>
+    <div class="nav-item active" data-page="dashboard"><span class="material-icons-round">dashboard</span>Dashboard</div>
+    <div class="nav-item" data-page="today"><span class="material-icons-round">today</span>Absensi Hari Ini</div>
+    <div class="nav-item" data-page="students"><span class="material-icons-round">groups</span>Data Siswa</div>
+    <div class="nav-item" data-page="generate"><span class="material-icons-round">qr_code_2</span>Generate QR</div>
+    <div class="nav-item" data-page="recap"><span class="material-icons-round">analytics</span>Rekap Absensi</div>
+    <div class="nav-section">Data</div>
+    <div class="nav-item" data-page="import"><span class="material-icons-round">upload_file</span>Import Excel</div>
+    <div class="nav-item" data-page="export"><span class="material-icons-round">download</span>Export</div>
+    <div class="nav-section">Lainnya</div>
+    <div class="nav-item" data-page="settings"><span class="material-icons-round">settings</span>Pengaturan</div>
+    <div class="nav-item" data-page="logout"><span class="material-icons-round">logout</span>Logout</div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div style="display:flex;gap:12px;align-items:center">
+        <button class="icon-btn menu-toggle" onclick="toggleSidebar()">
+          <span class="material-icons-round">menu</span>
+        </button>
+        <div>
+          <div class="topbar-title" id="pageTitle">Dashboard</div>
+          <div class="topbar-sub" id="pageSub">Selamat datang kembali</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="toggleTheme()" title="Dark Mode">
+          <span class="material-icons-round" id="themeIcon">dark_mode</span>
+        </button>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:12px">
+          <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:white;font-weight:700">R</div>
+          <div style="font-size:13px">
+            <div style="font-weight:600">Rahmadi T.</div>
+            <div style="font-size:11px;color:var(--text-muted)">Instruktur</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pageContent"></div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div id="modalContainer"></div>
+
+<script>
+/* ============ DATA DARI ABSENSI.XLSX ============ */
+const PROGRAM = "PROGRAM KEAHLIAN PROFESI 1 TAHUN (PKP-1) ANGKATAN 13";
+const LKP = "LKP. ZAKIYAH MUARA ENIM";
+const INSTRUKTUR = "RAHMADI TAUFIK";
+const MATERI = "Photoshop & Corel 2";
+const SEMESTER = "II (GENAP)";
+
+const initialStudents = [
+  // KELAS 1
+  {id:'S001',nim:'2025 120604 736',nama:'ANES JUNISAH',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR001'},
+  {id:'S002',nim:'2025 020805 737',nama:'HALIMA',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR002'},
+  {id:'S003',nim:'2025 160407 740',nama:'AJENG PURI APRILLIA',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR003'},
+  {id:'S004',nim:'2025 010607 741',nama:'SAFARA RAIZA ANANTA',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR004'},
+  {id:'S005',nim:'2025 041007 742',nama:'ECHA WAHYUNI',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR005'},
+  {id:'S006',nim:'2025 110207 743',nama:'FEBY VALENDRI YOLANDARI',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR006'},
+  {id:'S007',nim:'2025 270907 744',nama:'TAZIRA TALIMA YAHSYAH',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR007'},
+  {id:'S008',nim:'2025 091107 745',nama:'REVINA DWI ARSIKA',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR008'},
+  {id:'S009',nim:'2025 240407 783',nama:'ALSYIFAH',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR009'},
+  {id:'S010',nim:'2025 290108 808',nama:'YOLLA ARDILA',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR010'},
+  {id:'S011',nim:'2025 180906 748',nama:'SELI',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR011'},
+  {id:'S012',nim:'2025 131208 749',nama:'TANTI NABILA',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR012'},
+  {id:'S013',nim:'2025 281207 750',nama:'NADEL CHA VEMLAGIA',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR013'},
+  {id:'S014',nim:'2025 240607 774',nama:'JUNIYAH DWI PUTRI',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR014'},
+  {id:'S015',nim:'2025 120507 775',nama:'MELA ASTRIANI',kelas:'ADMINISTRASI PERKANTORAN - 1',jurusan:'Administrasi Perkantoran',qrID:'QR015'},
+  // KELAS 2
+  {id:'S016',nim:'2025 230807 751',nama:'ALUNA MELOUDY',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR016'},
+  {id:'S017',nim:'2025 170407 752',nama:'WENNY APRIZA',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR017'},
+  {id:'S018',nim:'2025 070507 753',nama:'EMA SAVITRI',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR018'},
+  {id:'S019',nim:'2025 250108 754',nama:'ARUM SEKARSARI',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR019'},
+  {id:'S020',nim:'2025 050407 755',nama:'CAHYA AYU KHEANTY',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR020'},
+  {id:'S021',nim:'2025 100807 756',nama:'DELLA VIRNA AGUSTIN',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR021'},
+  {id:'S022',nim:'2025 110606 761',nama:'AMELIA TRIANI',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR022'},
+  {id:'S023',nim:'2025 110907 793',nama:'FAJRIA RAHMADANI',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR023'},
+  {id:'S024',nim:'2025 180607 763',nama:"VIOLA HURUL A'IN",kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR024'},
+  {id:'S025',nim:'2025 091207 764',nama:'NABILA RIZKY AJI',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR025'},
+  {id:'S026',nim:'2025 040907 765',nama:'TASYA SEPTIA ANJANI',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR026'},
+  {id:'S027',nim:'2025 210208 766',nama:'VIKA ALIZAH',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR027'},
+  {id:'S028',nim:'2025 100108 767',nama:'MESSY ARDA LENA',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR028'},
+  {id:'S029',nim:'2025 050606 746',nama:'NATASYA WULANDARI',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR029'},
+  {id:'S030',nim:'2025 270605 828',nama:'SELKYA ELVINA',kelas:'ADMINISTRASI PERKANTORAN - 2',jurusan:'Administrasi Perkantoran',qrID:'QR030'},
+  // KELAS 3
+  {id:'S031',nim:'2025 270607 738',nama:'CHELSY OLIVIA',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR031'},
+  {id:'S032',nim:'2025 270607 739',nama:'CHELSYA OLIVIA',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR032'},
+  {id:'S033',nim:'2025 040308 768',nama:'DENIS ELPATIA',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR033'},
+  {id:'S034',nim:'2025 080207 769',nama:'RIZKA FAUZIAH',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR034'},
+  {id:'S035',nim:'2025 011007 770',nama:'CAHYA CANTIKA',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR035'},
+  {id:'S036',nim:'2025 260606 771',nama:'REVINA SALSABILLA',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR036'},
+  {id:'S037',nim:'2025 030407 772',nama:'ANGGUN SEFRIA',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR037'},
+  {id:'S038',nim:'2025 180508 773',nama:'RESTA AFIFAH',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR038'},
+  {id:'S039',nim:'2025 030907 777',nama:'SELVIA ANGGRAINI',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR039'},
+  {id:'S040',nim:'2025 061006 780',nama:'RAHMA JUM ELPA DELAH',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR040'},
+  {id:'S041',nim:'2025 060407 781',nama:'HAFIZA',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR041'},
+  {id:'S042',nim:'2025 160807 747',nama:'FERLIA AGUSTIANI',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR042'},
+  {id:'S043',nim:'2025 230207 782',nama:'RELIA NORIN',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR043'},
+  {id:'S044',nim:'2025 200307 821',nama:'MELIZA',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR044'},
+  {id:'S045',nim:'2025 040408 811',nama:'ANANDIKA ARJETI',kelas:'ADMINISTRASI PERKANTORAN - 3',jurusan:'Administrasi Perkantoran',qrID:'QR045'},
+  // KELAS 4
+  {id:'S046',nim:'2025 081206 813',nama:'NIKEN FASA',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR046'},
+  {id:'S047',nim:'2025 041007 784',nama:'GADIS CANTIKA',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR047'},
+  {id:'S048',nim:'2025 170907 786',nama:'FAUZI RAHMAD RAMADAN',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR048'},
+  {id:'S049',nim:'2025 150307 787',nama:'ERICSA DAMAYANTI',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR049'},
+  {id:'S050',nim:'2025 280907 789',nama:'NADYA PUTRI RAMADHANI',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR050'},
+  {id:'S051',nim:'2025 100808 762',nama:'TAMMAM NUR RAMSI',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR051'},
+  {id:'S052',nim:'2025 290707 790',nama:'RAAHIL SALWA ZAHRAH',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR052'},
+  {id:'S053',nim:'2025 150207 812',nama:'SITI SOLEHA',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR053'},
+  {id:'S054',nim:'2025 280407 815',nama:'TITIS SALMA',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR054'},
+  {id:'S055',nim:'2025 140803 794',nama:'KASELA FAKOLIN',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR055'},
+  {id:'S056',nim:'2025 020406 816',nama:'VICKY ARYANI',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR056'},
+  {id:'S057',nim:'2025 180508 822',nama:'AQEELA SABRINA',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR057'},
+  {id:'S058',nim:'2025 200907 823',nama:'NAURA NAZHIFA PURNOMO',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR058'},
+  {id:'S059',nim:'2025 090607 830',nama:'DAVINA KIRANIA PUTRI',kelas:'ADMINISTRASI PERKANTORAN - 4',jurusan:'Administrasi Perkantoran',qrID:'QR059'},
+  // KELAS 5
+  {id:'S060',nim:'2025 390907 798',nama:'SYAFINA BEMBY UTAMI',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR060'},
+  {id:'S061',nim:'2025 110508 800',nama:'MEILYANI ANANTA',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR061'},
+  {id:'S062',nim:'2025 180407 801',nama:'ZAHRA AYUDYA PRAMADANTY',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR062'},
+  {id:'S063',nim:'2025 051207 802',nama:'ENDIRA DESTALIA',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR063'},
+  {id:'S064',nim:'2025 250308 803',nama:'ZERA AMANDA',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR064'},
+  {id:'S065',nim:'2025 190807 804',nama:'AGES AMELIA',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR065'},
+  {id:'S066',nim:'2025 210407 758',nama:'VERREN ABEL AFREZI',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR066'},
+  {id:'S067',nim:'2025 031007 759',nama:'CENDY RAHMADANI',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR067'},
+  {id:'S068',nim:'2025 300706 814',nama:'DINDA TRI YULIA',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR068'},
+  {id:'S069',nim:'2025 300606 806',nama:'NESA OLIVIA',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR069'},
+  {id:'S070',nim:'2025 100508 818',nama:'ALLYSA MEILANIE PUTRI',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR070'},
+  {id:'S071',nim:'2025 280707 819',nama:'AURA MUGHNI',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR071'},
+  {id:'S072',nim:"2025 040207 791",nama:"AL'GAH MOLAS UTARI",kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR072'},
+  {id:'S073',nim:'2025 130707 829',nama:'SHADIQAH NABILA',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR073'},
+  {id:'S074',nim:'2025 060307 834',nama:'AZARIA JESSICA',kelas:'ADMINISTRASI PERKANTORAN - 5',jurusan:'Administrasi Perkantoran',qrID:'QR074'},
+  // KELAS 6
+  {id:'S075',nim:'2025 151207 797',nama:'ELSI KOHPINA',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR075'},
+  {id:'S076',nim:'2025 271005 810',nama:'EMELDA OKTAPIA',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR076'},
+  {id:'S077',nim:'2025 091007 809',nama:'NAURA SANDIKA',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR077'},
+  {id:'S078',nim:'2025 170605 825',nama:'MARLIS ANISTA',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR078'},
+  {id:'S079',nim:'2025 160607 826',nama:'JUNYONE BAGOES PRATAMA',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR079'},
+  {id:'S080',nim:'2025 130807 827',nama:'ADISTA DWI AGUSTIN',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR080'},
+  {id:'S081',nim:'2025 280802 824',nama:'FARRISYA YASSHINTA',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR081'},
+  {id:'S082',nim:'2025 080907 776',nama:'SELTYA ULANA PUTRI',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR082'},
+  {id:'S083',nim:'2025 030707 820',nama:'SECIANI MELINDAH',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR083'},
+  {id:'S084',nim:'2025 160207 796',nama:'DESI SURYA NINGSIH',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR084'},
+  {id:'S085',nim:'2025 301007 760',nama:'SAVIRA DWI OKTARINA',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR085'},
+  {id:'S086',nim:'2025 170308 795',nama:'FIRANI EKA AZZAHRA',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR086'},
+  {id:'S087',nim:'2025 220707 817',nama:'ANNISA DWI JULIANA',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR087'},
+  {id:'S088',nim:'2025 150105 807',nama:'DIAH KURNIAWATI',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR088'},
+  {id:'S089',nim:'2025 050606 832',nama:'BELLIA EMBUN ISLAMI',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR089'},
+  {id:'S090',nim:'2025 050906 833',nama:'NADYA PUTRI ZAHRA',kelas:'ADMINISTRASI PERKANTORAN - 6',jurusan:'Administrasi Perkantoran',qrID:'QR090'},
+];
+
+/* ============ STORAGE ============ */
+const DB = {
+  get(key,def){try{const v=localStorage.getItem('zakiyah_'+key);return v?JSON.parse(v):def}catch(e){return def}},
+  set(key,val){localStorage.setItem('zakiyah_'+key,JSON.stringify(val))},
+  del(key){localStorage.removeItem('zakiyah_'+key)}
+};
+
+// Init data
+if(!DB.get('students')) DB.set('students', initialStudents);
+if(!DB.get('attendance')) DB.set('attendance', []);
+if(!DB.get('user')) DB.set('user', {email:'guru@zakiyah.id',password:'admin123',nama:'Rahmadi Taufik',role:'guru'});
+
+let students = DB.get('students');
+let attendance = DB.get('attendance');
+let currentUser = null;
+let currentPage = 'dashboard';
+let activeQRToken = null;
+let qrTimerInterval = null;
+let chartInstance = null;
+
+/* ============ UTILS ============ */
+const $ = id => document.getElementById(id);
+const fmtDate = d => {
+  const dt = new Date(d);
+  const bln = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  return `${dt.getDate()} ${bln[dt.getMonth()]} ${dt.getFullYear()}`;
+};
+const fmtDateShort = d => {
+  const dt = new Date(d);
+  return `${dt.getDate().toString().padStart(2,'0')}/${(dt.getMonth()+1).toString().padStart(2,'0')}/${dt.getFullYear()}`;
+};
+const fmtTime = d => {
+  const dt = new Date(d);
+  return `${dt.getHours().toString().padStart(2,'0')}.${dt.getMinutes().toString().padStart(2,'0')} WIB`;
+};
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+};
+function toast(msg, type='info'){
+  const t = document.createElement('div');
+  t.className = 'toast '+type;
+  const icon = type==='success'?'check_circle':type==='error'?'error':'info';
+  t.innerHTML = `<span class="material-icons-round" style="color:var(--${type==='success'?'accent':type==='error'?'danger':'primary'})">${icon}</span><span style="font-size:13px;flex:1">${msg}</span>`;
+  $('toastContainer').appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(100%)';t.style.transition='all .3s';setTimeout(()=>t.remove(),300)},3000);
+}
+function genToken(){
+  return 'TKN-'+Date.now()+'-'+Math.random().toString(36).substring(2,10);
+}
+function getKelasList(){return [...new Set(students.map(s=>s.kelas))].sort()}
+function getJurusanList(){return [...new Set(students.map(s=>s.jurusan))].sort()}
+
+/* ============ ROUTING ============ */
+function route(){
+  const hash = location.hash.substring(1);
+  if(hash.startsWith('scan/')){
+    showScanPage(hash.substring(5));
+  } else {
+    showLoginOrApp();
+  }
+}
+window.addEventListener('hashchange', route);
+
+function showLoginOrApp(){
+  const saved = DB.get('session');
+  if(saved){
+    currentUser = saved;
+    showApp();
+  } else {
+    showLogin();
+  }
+}
+
+/* ============ LOGIN ============ */
+function showLogin(){
+  $('loginPage').classList.remove('hidden');
+  $('scanPage').classList.add('hidden');
+  $('appPage').classList.add('hidden');
+  $('loginForm').onsubmit = e => {
+    e.preventDefault();
+    const email = $('loginEmail').value.trim();
+    const pass = $('loginPassword').value;
+    const user = DB.get('user');
+    if(email === user.email && pass === user.password){
+      currentUser = user;
+      DB.set('session', user);
+      toast('Login berhasil!','success');
+      showApp();
+    } else {
+      toast('Email atau password salah','error');
+    }
+  };
+}
+
+/* ============ SCAN PAGE ============ */
+function showScanPage(token){
+  $('loginPage').classList.add('hidden');
+  $('appPage').classList.add('hidden');
+  $('scanPage').classList.remove('hidden');
+
+  // Verify token
+  const activeTokens = DB.get('activeTokens') || {};
+  const tokenData = activeTokens[token];
+  const now = Date.now();
+
+  if(!tokenData || now > tokenData.expires){
+    $('scanContent').innerHTML = `
+      <div style="padding:30px 0">
+        <div style="font-size:60px;margin-bottom:16px">⏰</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">QR Code Tidak Valid</div>
+        <div style="color:var(--text-muted);font-size:13px;margin-bottom:20px">QR Code sudah kedaluwarsa atau tidak aktif. Silakan hubungi instruktur untuk generate QR baru.</div>
+        <button class="btn btn-ghost" onclick="location.hash=''" style="width:100%">Kembali</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Pick random student from class (simulating - in real app, student would select themselves)
+  const classStudents = students.filter(s => s.kelas === tokenData.kelas);
+  
+  // Show student selector
+  renderStudentSelector(tokenData, classStudents, token);
+}
+
+function renderStudentSelector(tokenData, classStudents, token){
+  let options = classStudents.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+  $('scanContent').innerHTML = `
+    <div style="background:rgba(37,99,235,.08);padding:12px;border-radius:12px;margin-bottom:16px;font-size:12px">
+      <div style="font-weight:600;color:var(--primary);margin-bottom:4px">📋 Pilih nama Anda:</div>
+      <div style="color:var(--text-muted)">${tokenData.kelas}</div>
+    </div>
+    <div class="form-group">
+      <select class="form-input" id="studentSelect" style="font-size:14px">
+        <option value="">-- Pilih Nama --</option>
+        ${options}
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="confirmStudentSelection('${token}')">
+      <span class="material-icons-round" style="font-size:18px">check</span>
+      Konfirmasi
+    </button>
+  `;
+}
+
+function confirmStudentSelection(token){
+  const sid = $('studentSelect').value;
+  if(!sid){toast('Pilih nama Anda terlebih dahulu','error');return}
+  const student = students.find(s=>s.id===sid);
+  const activeTokens = DB.get('activeTokens') || {};
+  const tokenData = activeTokens[token];
+  renderScanForm(student, tokenData);
+}
+
+function renderScanForm(student, tokenData){
+  // Check if already attended today
+  const today = todayStr();
+  const existing = attendance.find(a => a.siswaID === student.id && a.tanggal === today);
+  
+  if(existing){
+    $('scanContent').innerHTML = `
+      <div style="padding:20px 0">
+        <div class="success-anim">⚠️</div>
+        <div style="font-size:18px;font-weight:700;margin:16px 0 8px">Sudah Absen</div>
+        <div style="color:var(--text-muted);font-size:13px;margin-bottom:20px">Kamu sudah melakukan absensi hari ini pada pukul ${existing.jam}.</div>
+        <div class="scan-info">
+          <div class="scan-row"><span class="scan-label">Nama</span><span class="scan-value">${student.nama}</span></div>
+          <div class="scan-row"><span class="scan-label">Kelas</span><span class="scan-value">${student.kelas}</span></div>
+          <div class="scan-row"><span class="scan-label">Status</span><span class="scan-value"><span class="badge badge-green">✓ ${existing.status}</span></span></div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  $('scanContent').innerHTML = `
+    <div class="scan-info">
+      <div class="scan-row"><span class="scan-label">Nama</span><span class="scan-value">${student.nama}</span></div>
+      <div class="scan-row"><span class="scan-label">NIM</span><span class="scan-value">${student.nim}</span></div>
+      <div class="scan-row"><span class="scan-label">Kelas</span><span class="scan-value">${student.kelas}</span></div>
+      <div class="scan-row"><span class="scan-label">Jurusan</span><span class="scan-value">${student.jurusan}</span></div>
+      <div class="scan-row"><span class="scan-label">Tanggal</span><span class="scan-value">${fmtDate(new Date())}</span></div>
+      <div class="scan-row"><span class="scan-label">Jam</span><span class="scan-value" id="liveClock">${fmtTime(new Date())}</span></div>
+      <div class="scan-row"><span class="scan-label">Materi</span><span class="scan-value">${MATERI}</span></div>
+    </div>
+    <button class="btn-hadir" onclick="submitAttendance('${student.id}','${token}')">
+      ✅ HADIR
+    </button>
+    <div style="margin-top:12px;font-size:11px;color:var(--text-muted)">Dengan menekan tombol, Anda menyatakan hadir</div>
+  `;
+
+  // Live clock
+  const clockEl = $('liveClock');
+  const clockInt = setInterval(()=>{
+    if(!$('liveClock')){clearInterval(clockInt);return}
+    $('liveClock').textContent = fmtTime(new Date());
+  },1000);
+}
+
+function submitAttendance(sid, token){
+  const student = students.find(s=>s.id===sid);
+  const now = new Date();
+  const record = {
+    id:'A'+Date.now(),
+    siswaID: student.id,
+    nim: student.nim,
+    nama: student.nama,
+    kelas: student.kelas,
+    jurusan: student.jurusan,
+    tanggal: todayStr(),
+    jam: fmtTime(now),
+    timestamp: now.getTime(),
+    status: 'Hadir',
+    token: token
+  };
+  attendance.push(record);
+  DB.set('attendance', attendance);
+
+  $('scanContent').innerHTML = `
+    <div style="padding:20px 0">
+      <div class="success-anim">✅</div>
+      <div style="font-size:20px;font-weight:700;margin:16px 0 8px;color:var(--accent)">Absensi Berhasil!</div>
+      <div style="color:var(--text-muted);font-size:13px;margin-bottom:20px">Terima kasih, kehadiran Anda telah dicatat.</div>
+      <div class="scan-info">
+        <div class="scan-row"><span class="scan-label">Nama</span><span class="scan-value">${student.nama}</span></div>
+        <div class="scan-row"><span class="scan-label">Kelas</span><span class="scan-value">${student.kelas}</span></div>
+        <div class="scan-row"><span class="scan-label">Tanggal</span><span class="scan-value">${fmtDate(now)}</span></div>
+        <div class="scan-row"><span class="scan-label">Jam</span><span class="scan-value">${fmtTime(now)}</span></div>
+        <div class="scan-row"><span class="scan-label">Status</span><span class="scan-value"><span class="badge badge-green">✓ Hadir</span></span></div>
+      </div>
+    </div>
+  `;
+  toast('Absensi berhasil dicatat','success');
+}
+
+/* ============ APP ============ */
+function showApp(){
+  $('loginPage').classList.add('hidden');
+  $('scanPage').classList.add('hidden');
+  $('appPage').classList.remove('hidden');
+  navigateTo('dashboard');
+}
+
+function toggleSidebar(){
+  $('sidebar').classList.toggle('open');
+}
+
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    const page = item.dataset.page;
+    if(page==='logout'){
+      if(confirm('Yakin ingin logout?')){
+        DB.del('session');
+        currentUser = null;
+        location.hash = '';
+        showLogin();
+      }
+      return;
+    }
+    navigateTo(page);
+    if(window.innerWidth<=900) $('sidebar').classList.remove('open');
+  });
+});
+
+function navigateTo(page){
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.page===page));
+  const titles = {
+    dashboard:['Dashboard','Ringkasan data absensi'],
+    today:['Absensi Hari Ini','Daftar kehadiran hari ini'],
+    students:['Data Siswa','Kelola data siswa'],
+    generate:['Generate QR Code','Buat QR untuk absensi'],
+    recap:['Rekap Absensi','Laporan kehadiran siswa'],
+    import:['Import Data','Import dari file Excel'],
+    export:['Export Data','Unduh laporan'],
+    settings:['Pengaturan','Konfigurasi aplikasi']
+  };
+  $('pageTitle').textContent = titles[page][0];
+  $('pageSub').textContent = titles[page][1];
+  
+  const renderers = {dashboard:renderDashboard,today:renderToday,students:renderStudents,generate:renderGenerate,recap:renderRecap,import:renderImport,export:renderExport,settings:renderSettings};
+  renderers[page]();
+}
+
+/* ============ DASHBOARD ============ */
+function renderDashboard(){
+  const today = todayStr();
+  const todayAtt = attendance.filter(a=>a.tanggal===today);
+  const totalStudents = students.length;
+  const hadir = todayAtt.filter(a=>a.status==='Hadir').length;
+  const izin = todayAtt.filter(a=>a.status==='Izin').length;
+  const sakit = todayAtt.filter(a=>a.status==='Sakit').length;
+  const alpa = todayAtt.filter(a=>a.status==='Alpa').length;
+  const tidakHadir = totalStudents - hadir;
+
+  $('pageContent').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue"><span class="material-icons-round">groups</span></div>
+        <div class="stat-label">Total Siswa</div>
+        <div class="stat-value">${totalStudents}</div>
+        <div class="stat-change">${getKelasList().length} kelas aktif</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><span class="material-icons-round">check_circle</span></div>
+        <div class="stat-label">Hadir Hari Ini</div>
+        <div class="stat-value">${hadir}</div>
+        <div class="stat-change">${totalStudents?Math.round(hadir/totalStudents*100):0}% kehadiran</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red"><span class="material-icons-round">person_off</span></div>
+        <div class="stat-label">Tidak Hadir</div>
+        <div class="stat-value">${tidakHadir}</div>
+        <div class="stat-change">Izin: ${izin} · Sakit: ${sakit} · Alpa: ${alpa}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon amber"><span class="material-icons-round">schedule</span></div>
+        <div class="stat-label">Total Absensi</div>
+        <div class="stat-value">${attendance.length}</div>
+        <div class="stat-change">Sepanjang waktu</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px" class="dash-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📊 Grafik Kehadiran 7 Hari Terakhir</div>
+        </div>
+        <div class="chart-wrap"><canvas id="weekChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📈 Per Kelas</div>
+        </div>
+        <div class="chart-wrap"><canvas id="classChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-header">
+        <div class="card-title">🕐 Absensi Terbaru</div>
+        <button class="btn btn-ghost btn-sm" onclick="navigateTo('today')">Lihat Semua</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nama</th><th>Kelas</th><th>Jam</th><th>Status</th></tr></thead>
+          <tbody>
+            ${todayAtt.slice(-5).reverse().map(a=>`
+              <tr>
+                <td><b>${a.nama}</b></td>
+                <td>${a.kelas.replace('ADMINISTRASI PERKANTORAN - ','AP-')}</td>
+                <td>${a.jam}</td>
+                <td><span class="badge badge-green">✓ ${a.status}</span></td>
+              </tr>
+            `).join('') || '<tr><td colspan="4" class="empty">Belum ada absensi hari ini</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <style>.dash-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px}@media(max-width:900px){.dash-grid{grid-template-columns:1fr}}</style>
+  `;
+
+  // Week chart
+  const days = [];
+  const hadirData = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date();d.setDate(d.getDate()-i);
+    const ds = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+    days.push(d.toLocaleDateString('id-ID',{weekday:'short',day:'numeric'}));
+    hadirData.push(attendance.filter(a=>a.tanggal===ds && a.status==='Hadir').length);
+  }
+  if(chartInstance) chartInstance.destroy();
+  const ctx = $('weekChart').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,280);
+  grad.addColorStop(0,'rgba(37,99,235,.4)');
+  grad.addColorStop(1,'rgba(37,99,235,0)');
+  chartInstance = new Chart(ctx,{
+    type:'line',
+    data:{labels:days,datasets:[{label:'Hadir',data:hadirData,borderColor:'#2563eb',backgroundColor:grad,fill:true,tension:.4,borderWidth:3,pointBackgroundColor:'#2563eb',pointRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:5}},x:{grid:{display:false}}}}
+  });
+
+  // Class chart
+  const kelasList = getKelasList();
+  const classData = kelasList.map(k=>attendance.filter(a=>a.tanggal===today && a.kelas===k).length);
+  new Chart($('classChart').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:kelasList.map(k=>k.replace('ADMINISTRASI PERKANTORAN - ','Kelas ')),datasets:[{data:classData,backgroundColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6']}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}}
+  });
+}
+
+/* ============ TODAY ============ */
+function renderToday(){
+  const today = todayStr();
+  const todayAtt = attendance.filter(a=>a.tanggal===today);
+  $('pageContent').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📅 Absensi ${fmtDate(new Date())}</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="exportTodayExcel()"><span class="material-icons-round" style="font-size:14px">download</span>Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportTodayPDF()"><span class="material-icons-round" style="font-size:14px">picture_as_pdf</span>PDF</button>
+        </div>
+      </div>
+      <div class="filters">
+        <select id="filterKelasToday" onchange="filterToday()">
+          <option value="">Semua Kelas</option>
+          ${getKelasList().map(k=>`<option value="${k}">${k}</option>`).join('')}
+        </select>
+        <input type="text" id="searchToday" placeholder="Cari nama..." oninput="filterToday()">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>NIM</th><th>Nama</th><th>Kelas</th><th>Jam</th><th>Status</th></tr></thead>
+          <tbody id="todayTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  filterToday();
+}
+
+function filterToday(){
+  const today = todayStr();
+  const kelas = $('filterKelasToday').value;
+  const search = $('searchToday').value.toLowerCase();
+  let data = attendance.filter(a=>a.tanggal===today);
+  if(kelas) data = data.filter(a=>a.kelas===kelas);
+  if(search) data = data.filter(a=>a.nama.toLowerCase().includes(search));
+  $('todayTableBody').innerHTML = data.length ? data.map((a,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td style="font-family:monospace;font-size:12px">${a.nim}</td>
+      <td><b>${a.nama}</b></td>
+      <td>${a.kelas.replace('ADMINISTRASI PERKANTORAN - ','AP-')}</td>
+      <td>${a.jam}</td>
+      <td><span class="badge badge-green">✓ ${a.status}</span></td>
+    </tr>
+  `).join('') : '<tr><td colspan="6" class="empty">Belum ada data absensi hari ini</td></tr>';
+}
+
+/* ============ STUDENTS ============ */
+function renderStudents(){
+  $('pageContent').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">👥 Data Siswa (${students.length})</div>
+        <button class="btn btn-accent btn-sm" onclick="openStudentModal()"><span class="material-icons-round" style="font-size:14px">add</span>Tambah Siswa</button>
+      </div>
+      <div class="filters">
+        <select id="filterKelasStudent" onchange="filterStudents()">
+          <option value="">Semua Kelas</option>
+          ${getKelasList().map(k=>`<option value="${k}">${k}</option>`).join('')}
+        </select>
+        <input type="text" id="searchStudent" placeholder="Cari nama / NIM..." oninput="filterStudents()">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>NIM</th><th>Nama</th><th>Kelas</th><th>QR ID</th><th>Total Hadir</th><th>Aksi</th></tr></thead>
+          <tbody id="studentsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  filterStudents();
+}
+
+function filterStudents(){
+  const kelas = $('filterKelasStudent').value;
+  const search = $('searchStudent').value.toLowerCase();
+  let data = [...students];
+  if(kelas) data = data.filter(s=>s.kelas===kelas);
+  if(search) data = data.filter(s=>s.nama.toLowerCase().includes(search)||s.nim.includes(search));
+  $('studentsTableBody').innerHTML = data.map((s,i)=>{
+    const totalHadir = attendance.filter(a=>a.siswaID===s.id && a.status==='Hadir').length;
+    return `
+      <tr>
+        <td>${i+1}</td>
+        <td style="font-family:monospace;font-size:12px">${s.nim}</td>
+        <td><b>${s.nama}</b></td>
+        <td>${s.kelas.replace('ADMINISTRASI PERKANTORAN - ','AP-')}</td>
+        <td><span class="badge badge-blue">${s.qrID}</span></td>
+        <td><span class="badge badge-green">${totalHadir}x</span></td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="openStudentModal('${s.id}')" title="Edit"><span class="material-icons-round" style="font-size:14px">edit</span></button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteStudent('${s.id}')" title="Hapus" style="color:var(--danger)"><span class="material-icons-round" style="font-size:14px">delete</span></button>
+        </td>
+      </tr>
+    `;
+  }).join('') || '<tr><td colspan="7" class="empty">Tidak ada data</td></tr>';
+}
+
+function openStudentModal(id){
+  const s = id ? students.find(x=>x.id===id) : null;
+  $('modalContainer').innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-title">${s?'Edit':'Tambah'} Siswa<button class="icon-btn" onclick="closeModal()"><span class="material-icons-round">close</span></button></div>
+        <form id="studentForm">
+          <div class="form-group"><label class="form-label">NIM</label><input class="form-input" id="sNim" value="${s?s.nim:''}" required></div>
+          <div class="form-group"><label class="form-label">Nama Lengkap</label><input class="form-input" id="sNama" value="${s?s.nama:''}" required></div>
+          <div class="form-group"><label class="form-label">Kelas</label>
+            <select class="form-input" id="sKelas" required>
+              ${getKelasList().map(k=>`<option value="${k}" ${s&&s.kelas===k?'selected':''}>${k}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Jurusan</label><input class="form-input" id="sJurusan" value="${s?s.jurusan:'Administrasi Perkantoran'}" required></div>
+          <div style="display:flex;gap:10px;margin-top:20px">
+            <button type="button" class="btn btn-ghost" onclick="closeModal()" style="flex:1">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex:1">${s?'Update':'Simpan'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  $('studentForm').onsubmit = e => {
+    e.preventDefault();
+    const data = {
+      nim: $('sNim').value,
+      nama: $('sNama').value.toUpperCase(),
+      kelas: $('sKelas').value,
+      jurusan: $('sJurusan').value
+    };
+    if(s){
+      Object.assign(s, data);
+      toast('Data siswa diupdate','success');
+    } else {
+      const newId = 'S'+(students.length+1).toString().padStart(3,'0');
+      students.push({...data, id:newId, qrID:'QR'+(students.length+1).toString().padStart(3,'0')});
+      toast('Siswa ditambahkan','success');
+    }
+    DB.set('students', students);
+    closeModal();
+    filterStudents();
+  };
+}
+
+function deleteStudent(id){
+  if(!confirm('Yakin hapus siswa ini?')) return;
+  students = students.filter(s=>s.id!==id);
+  DB.set('students', students);
+  toast('Siswa dihapus','success');
+  filterStudents();
+}
+
+function closeModal(){$('modalContainer').innerHTML=''}
+
+/* ============ GENERATE QR ============ */
+function renderGenerate(){
+  $('pageContent').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📱 Generate QR Code Absensi</div>
+      </div>
+      <div class="filters">
+        <select class="form-input" id="qrKelas" style="min-width:200px">
+          <option value="">-- Pilih Kelas --</option>
+          ${getKelasList().map(k=>`<option value="${k}">${k}</option>`).join('')}
+        </select>
+        <button class="btn btn-primary" onclick="generateQR()" style="width:auto">
+          <span class="material-icons-round" style="font-size:18px">qr_code_2</span>
+          Generate QR
+        </button>
+      </div>
+      <div style="background:rgba(37,99,235,.05);padding:14px;border-radius:12px;font-size:13px;color:var(--text-muted);margin-top:10px">
+        <b style="color:var(--primary)">ℹ️ Info:</b> QR Code berlaku selama 5 menit. Siswa scan QR dengan kamera HP untuk melakukan absensi.
+      </div>
+    </div>
+    <div id="qrResult"></div>
+  `;
+}
+
+function generateQR(){
+  const kelas = $('qrKelas').value;
+  if(!kelas){toast('Pilih kelas terlebih dahulu','error');return}
+  
+  if(qrTimerInterval) clearInterval(qrTimerInterval);
+  
+  const token = genToken();
+  const expires = Date.now() + 5*60*1000;
+  
+  // Save active token
+  const activeTokens = DB.get('activeTokens') || {};
+  activeTokens[token] = {kelas, jurusan:'Administrasi Perkantoran', expires, created:Date.now()};
+  DB.set('activeTokens', activeTokens);
+  activeQRToken = token;
+  
+  // QR content - URL to scan page
+  const baseUrl = location.origin + location.pathname;
+  const qrContent = `${baseUrl}#scan/${token}`;
+  
+  $('qrResult').innerHTML = `
+    <div class="qr-container">
+      <div class="qr-box">
+        <div class="qr-canvas" id="qrCanvas"></div>
+        <div class="qr-info">
+          <div style="font-weight:700;font-size:16px">${kelas}</div>
+          <div style="color:var(--text-muted);font-size:12px;margin:4px 0">${PROGRAM}</div>
+          <div style="margin:12px 0">
+            <div style="font-size:12px;color:var(--text-muted)">Sisa Waktu</div>
+            <div class="qr-timer" id="qrTimer">05:00</div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);word-break:break-all;background:var(--bg);padding:8px;border-radius:8px;margin-bottom:12px">${qrContent}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+            <button class="btn btn-accent btn-sm" onclick="downloadQR()"><span class="material-icons-round" style="font-size:14px">download</span>Download PNG</button>
+            <button class="btn btn-ghost btn-sm" onclick="copyQRLink('${token}')"><span class="material-icons-round" style="font-size:14px">content_copy</span>Copy Link</button>
+            <button class="btn btn-ghost btn-sm" onclick="resetQR()"><span class="material-icons-round" style="font-size:14px">refresh</span>Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin:0">
+        <div class="card-title" style="margin-bottom:12px">📋 Siswa Kelas Ini (${students.filter(s=>s.kelas===kelas).length})</div>
+        <div style="max-height:400px;overflow-y:auto">
+          ${students.filter(s=>s.kelas===kelas).map((s,i)=>`
+            <div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid var(--border);font-size:13px">
+              <span>${i+1}. ${s.nama}</span>
+              <span style="color:var(--text-muted);font-size:11px">${s.nim.split(' ').pop()}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Generate QR
+  QRCode.toCanvas(qrContent, {width:240, margin:2, color:{dark:'#1e293b',light:'#ffffff'}}, (err, canvas) => {
+    if(err){console.error(err);return}
+    canvas.id = 'qrCanvasEl';
+    $('qrCanvas').innerHTML = '';
+    $('qrCanvas').appendChild(canvas);
+  });
+  
+  // Timer
+  let remaining = 300;
+  qrTimerInterval = setInterval(()=>{
+    remaining--;
+    if(remaining<=0){
+      clearInterval(qrTimerInterval);
+      $('qrTimer').textContent = 'EXPIRED';
+      $('qrTimer').classList.add('expired');
+      toast('QR Code telah kedaluwarsa','error');
+      return;
+    }
+    const m = Math.floor(remaining/60).toString().padStart(2,'0');
+    const s = (remaining%60).toString().padStart(2,'0');
+    $('qrTimer').textContent = `${m}:${s}`;
+  },1000);
+  
+  toast('QR Code berhasil dibuat','success');
+}
+
+function downloadQR(){
+  const canvas = $('qrCanvasEl');
+  if(!canvas) return;
+  const link = document.createElement('a');
+  link.download = `QR_Absensi_${Date.now()}.png`;
+  link.href = canvas.toDataURL();
+  link.click();
+  toast('QR Code diunduh','success');
+}
+
+function copyQRLink(token){
+  const baseUrl = location.origin + location.pathname;
+  const link = `${baseUrl}#scan/${token}`;
+  navigator.clipboard.writeText(link).then(()=>toast('Link disalin','success'));
+}
+
+function resetQR(){
+  if(qrTimerInterval) clearInterval(qrTimerInterval);
+  if(activeQRToken){
+    const activeTokens = DB.get('activeTokens') || {};
+    delete activeTokens[activeQRToken];
+    DB.set('activeTokens', activeTokens);
+    activeQRToken = null;
+  }
+  $('qrResult').innerHTML = '';
+  toast('QR direset','info');
+}
+
+/* ============ RECAP ============ */
+function renderRecap(){
+  $('pageContent').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📊 Rekap Absensi</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="exportRecapExcel()"><span class="material-icons-round" style="font-size:14px">table_view</span>Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportRecapPDF()"><span class="material-icons-round" style="font-size:14px">picture_as_pdf</span>PDF</button>
+          <button class="btn btn-ghost btn-sm" onclick="window.print()"><span class="material-icons-round" style="font-size:14px">print</span>Print</button>
+        </div>
+      </div>
+      <div class="filters">
+        <input type="date" id="fTanggal" onchange="filterRecap()">
+        <input type="month" id="fBulan" onchange="filterRecap()">
+        <select id="fKelas" onchange="filterRecap()">
+          <option value="">Semua Kelas</option>
+          ${getKelasList().map(k=>`<option value="${k}">${k}</option>`).join('')}
+        </select>
+        <select id="fStatus" onchange="filterRecap()">
+          <option value="">Semua Status</option>
+          <option value="Hadir">Hadir</option>
+          <option value="Izin">Izin</option>
+          <option value="Sakit">Sakit</option>
+          <option value="Alpa">Alpa</option>
+        </select>
+        <input type="text" id="fSearch" placeholder="Cari nama..." oninput="filterRecap()">
+      </div>
+      <div class="stats-grid" style="margin-bottom:16px">
+        <div class="stat-card"><div class="stat-label">Total Data</div><div class="stat-value" id="rTotal">0</div></div>
+        <div class="stat-card"><div class="stat-label">Hadir</div><div class="stat-value" id="rHadir" style="color:var(--accent)">0</div></div>
+        <div class="stat-card"><div class="stat-label">Izin</div><div class="stat-value" id="rIzin" style="color:var(--warning)">0</div></div>
+        <div class="stat-card"><div class="stat-label">Sakit/Alpa</div><div class="stat-value" id="rSA" style="color:var(--danger)">0</div></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>NIM</th><th>Nama</th><th>Kelas</th><th>Tanggal</th><th>Jam</th><th>Status</th></tr></thead>
+          <tbody id="recapBody"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  filterRecap();
+}
+
+function filterRecap(){
+  const tgl = $('fTanggal').value;
+  const bln = $('fBulan').value;
+  const kelas = $('fKelas').value;
+  const status = $('fStatus').value;
+  const search = $('fSearch').value.toLowerCase();
+  
+  let data = [...attendance];
+  if(tgl) data = data.filter(a=>a.tanggal===tgl);
+  if(bln) data = data.filter(a=>a.tanggal.substring(0,7)===bln);
+  if(kelas) data = data.filter(a=>a.kelas===kelas);
+  if(status) data = data.filter(a=>a.status===status);
+  if(search) data = data.filter(a=>a.nama.toLowerCase().includes(search));
+  
+  data.sort((a,b)=>b.timestamp-a.timestamp);
+  
+  $('rTotal').textContent = data.length;
+  $('rHadir').textContent = data.filter(a=>a.status==='Hadir').length;
+  $('rIzin').textContent = data.filter(a=>a.status==='Izin').length;
+  $('rSA').textContent = data.filter(a=>a.status==='Sakit'||a.status==='Alpa').length;
+  
+  $('recapBody').innerHTML = data.length ? data.slice(0,200).map((a,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td style="font-family:monospace;font-size:12px">${a.nim}</td>
+      <td><b>${a.nama}</b></td>
+      <td>${a.kelas.replace('ADMINISTRASI PERKANTORAN - ','AP-')}</td>
+      <td>${fmtDateShort(a.tanggal)}</td>
+      <td>${a.jam}</td>
+      <td><span class="badge badge-${a.status==='Hadir'?'green':a.status==='Izin'?'amber':'red'}">${a.status}</span></td>
+    </tr>
+  `).join('') : '<tr><td colspan="7" class="empty">Tidak ada data</td></tr>';
+}
+
+/* ============ IMPORT ============ */
+function renderImport(){
+  $('pageContent').innerHTML = `
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">📥 Import Data dari Excel</div>
+      <div style="background:rgba(37,99,235,.05);padding:16px;border-radius:12px;margin-bottom:16px;font-size:13px">
+        <b>Format file:</b> Mengikuti struktur ABSENSI.xlsx<br>
+        <b>Kolom:</b> NO, NIM, NAMA, KELAS, JURUSAN<br>
+        <b>Catatan:</b> Data akan ditambahkan ke database yang ada.
+      </div>
+      <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="handleImport(event)">
+      <button class="btn btn-primary" onclick="$('importFile').click()" style="width:auto">
+        <span class="material-icons-round" style="font-size:18px">upload_file</span>
+        Pilih File Excel
+      </button>
+      <button class="btn btn-ghost" onclick="downloadTemplate()" style="width:auto;margin-left:8px">
+        <span class="material-icons-round" style="font-size:18px">download</span>
+        Download Template
+      </button>
+      <div id="importResult" style="margin-top:20px"></div>
+    </div>
+  `;
+}
+
+function handleImport(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try{
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const imported = [];
+      wb.SheetNames.forEach(sn=>{
+        const ws = wb.Sheets[sn];
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1});
+        // Detect class from sheet content
+        let currentKelas = '';
+        rows.forEach(row=>{
+          if(!row || row.length<3) return;
+          const r0 = String(row[0]||'').trim();
+          const r1 = String(row[1]||'').trim();
+          const r2 = String(row[2]||'').trim();
+          // Detect class header
+          if(r1 && r1.includes('ADMINISTRASI PERKANTORAN')){
+            currentKelas = r1;
+            return;
+          }
+          // Detect student row (NO is number, NIM has pattern)
+          if(/^\d+$/.test(r0) && /^\d{4}\s?\d{6}\s?\d{3}$/.test(r1.replace(/\s+/g,' ').trim()) && r2 && r2.length>2 && !r2.includes('NAMA')){
+            const nim = r1.replace(/\s+/g,' ').trim();
+            if(!students.find(s=>s.nim===nim)){
+              imported.push({
+                id:'S'+(students.length+imported.length+1).toString().padStart(3,'0'),
+                nim,
+                nama:r2.toUpperCase(),
+                kelas:currentKelas||'ADMINISTRASI PERKANTORAN - 1',
+                jurusan:'Administrasi Perkantoran',
+                qrID:'QR'+(students.length+imported.length+1).toString().padStart(3,'0')
+              });
+            }
+          }
+        });
+      });
+      if(imported.length){
+        students = [...students, ...imported];
+        DB.set('students', students);
+        $('importResult').innerHTML = `<div style="padding:14px;background:rgba(16,185,129,.1);border-radius:12px;color:var(--accent)"><b>✓ Berhasil import ${imported.length} siswa</b></div>`;
+        toast(`${imported.length} siswa diimport`,'success');
+      } else {
+        $('importResult').innerHTML = `<div style="padding:14px;background:rgba(245,158,11,.1);border-radius:12px;color:var(--warning)">Tidak ada data baru ditemukan</div>`;
+      }
+    } catch(err){
+      $('importResult').innerHTML = `<div style="padding:14px;background:rgba(239,68,68,.1);border-radius:12px;color:var(--danger)">Error: ${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function downloadTemplate(){
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['NO','NIM','NAMA','KELAS','JURUSAN'],
+    [1,'2025 120604 736','CONTOH SISWA','ADMINISTRASI PERKANTORAN - 1','Administrasi Perkantoran']
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Siswa');
+  XLSX.writeFile(wb, 'template_siswa.xlsx');
+}
+
+/* ============ EXPORT ============ */
+function renderExport(){
+  $('pageContent').innerHTML = `
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">📤 Export Data</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+        <div class="stat-card" style="cursor:pointer" onclick="exportAllStudentsExcel()">
+          <div class="stat-icon blue"><span class="material-icons-round">groups</span></div>
+          <div style="font-weight:700;margin-bottom:4px">Data Siswa</div>
+          <div style="font-size:12px;color:var(--text-muted)">Export seluruh data siswa ke Excel</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer" onclick="exportRecapExcel()">
+          <div class="stat-icon green"><span class="material-icons-round">table_view</span></div>
+          <div style="font-weight:700;margin-bottom:4px">Rekap Absensi (Excel)</div>
+          <div style="font-size:12px;color:var(--text-muted)">Export rekap absensi ke Excel</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer" onclick="exportRecapPDF()">
+          <div class="stat-icon red"><span class="material-icons-round">picture_as_pdf</span></div>
+          <div style="font-weight:700;margin-bottom:4px">Rekap Absensi (PDF)</div>
+          <div style="font-size:12px;color:var(--text-muted)">Export rekap absensi ke PDF</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer" onclick="exportTodayExcel()">
+          <div class="stat-icon amber"><span class="material-icons-round">today</span></div>
+          <div style="font-weight:700;margin-bottom:4px">Absensi Hari Ini</div>
+          <div style="font-size:12px;color:var(--text-muted)">Export absensi hari ini</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function exportAllStudentsExcel(){
+  const data = students.map((s,i)=>({
+    'No':i+1,'NIM':s.nim,'Nama':s.nama,'Kelas':s.kelas,'Jurusan':s.jurusan,'QR ID':s.qrID
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data Siswa');
+  XLSX.writeFile(wb, `Data_Siswa_LKP_Zakiyah_${todayStr()}.xlsx`);
+  toast('File Excel diunduh','success');
+}
+
+function exportRecapExcel(){
+  const data = attendance.map((a,i)=>({
+    'No':i+1,'NIM':a.nim,'Nama':a.nama,'Kelas':a.kelas,'Jurusan':a.jurusan,'Tanggal':fmtDateShort(a.tanggal),'Jam':a.jam,'Status':a.status
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Rekap Absensi');
+  XLSX.writeFile(wb, `Rekap_Absensi_${todayStr()}.xlsx`);
+  toast('File Excel diunduh','success');
+}
+
+function exportTodayExcel(){
+  const today = todayStr();
+  const data = attendance.filter(a=>a.tanggal===today).map((a,i)=>({
+    'No':i+1,'NIM':a.nim,'Nama':a.nama,'Kelas':a.kelas,'Jam':a.jam,'Status':a.status
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Absensi Hari Ini');
+  XLSX.writeFile(wb, `Absensi_Hari_Ini_${todayStr()}.xlsx`);
+  toast('File Excel diunduh','success');
+}
+
+function exportRecapPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text('LKP. ZAKIYAH MUARA ENIM', 105, 15, {align:'center'});
+  doc.setFontSize(12);
+  doc.text('REKAP ABSENSI SISWA', 105, 23, {align:'center'});
+  doc.setFontSize(10);
+  doc.text(`${PROGRAM}`, 105, 30, {align:'center'});
+  doc.text(`Instruktur: ${INSTRUKTUR} | Materi: ${MATERI}`, 105, 36, {align:'center'});
+  
+  const body = attendance.map((a,i)=>[i+1, a.nim, a.nama, a.kelas.replace('ADMINISTRASI PERKANTORAN - ','AP-'), fmtDateShort(a.tanggal), a.jam, a.status]);
+  doc.autoTable({
+    startY: 42,
+    head: [['No','NIM','Nama','Kelas','Tanggal','Jam','Status']],
+    body: body.length ? body : [['-','-','Tidak ada data','-','-','-','-']],
+    styles:{fontSize:8},
+    headStyles:{fillColor:[37,99,235]}
+  });
+  
+  doc.save(`Rekap_Absensi_${todayStr()}.pdf`);
+  toast('PDF diunduh','success');
+}
+
+function exportTodayPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const today = todayStr();
+  const data = attendance.filter(a=>a.tanggal===today);
+  doc.setFontSize(16);
+  doc.text('LKP. ZAKIYAH MUARA ENIM', 105, 15, {align:'center'});
+  doc.setFontSize(12);
+  doc.text('ABSENSI HARI INI', 105, 23, {align:'center'});
+  doc.setFontSize(10);
+  doc.text(`Tanggal: ${fmtDate(new Date())}`, 105, 30, {align:'center'});
+  
+  const body = data.map((a,i)=>[i+1, a.nim, a.nama, a.kelas.replace('ADMINISTRASI PERKANTORAN - ','AP-'), a.jam, a.status]);
+  doc.autoTable({
+    startY: 38,
+    head: [['No','NIM','Nama','Kelas','Jam','Status']],
+    body: body.length ? body : [['-','-','Tidak ada data','-','-','-']],
+    styles:{fontSize:9},
+    headStyles:{fillColor:[16,185,129]}
+  });
+  
+  doc.save(`Absensi_${todayStr()}.pdf`);
+  toast('PDF diunduh','success');
+}
+
+/* ============ SETTINGS ============ */
+function renderSettings(){
+  $('pageContent').innerHTML = `
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">⚙️ Pengaturan Aplikasi</div>
+      <div style="display:grid;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px;background:var(--bg);border-radius:12px">
+          <div>
+            <div style="font-weight:600">Mode Gelap</div>
+            <div style="font-size:12px;color:var(--text-muted)">Tampilan dark mode</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="toggleTheme()">
+            <span class="material-icons-round" style="font-size:14px">${document.documentElement.dataset.theme==='dark'?'light_mode':'dark_mode'}</span>
+            ${document.documentElement.dataset.theme==='dark'?'Light':'Dark'}
+          </button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px;background:var(--bg);border-radius:12px">
+          <div>
+            <div style="font-weight:600">Reset Absensi</div>
+            <div style="font-size:12px;color:var(--text-muted)">Hapus semua data absensi</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="resetAttendance()">Reset</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px;background:var(--bg);border-radius:12px">
+          <div>
+            <div style="font-weight:600">Reset Database</div>
+            <div style="font-size:12px;color:var(--text-muted)">Kembalikan data ke awal</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="resetDatabase()">Reset</button>
+        </div>
+        <div style="padding:14px;background:var(--bg);border-radius:12px">
+          <div style="font-weight:600;margin-bottom:4px">Informasi Aplikasi</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.8">
+            Versi: 1.0.0<br>
+            Instruktur: ${INSTRUKTUR}<br>
+            Total Siswa: ${students.length}<br>
+            Total Absensi: ${attendance.length}<br>
+            Kelas: ${getKelasList().length}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function resetAttendance(){
+  if(!confirm('Yakin hapus semua data absensi? Tindakan ini tidak dapat dibatalkan.')) return;
+  attendance = [];
+  DB.set('attendance', attendance);
+  toast('Data absensi direset','success');
+  renderSettings();
+}
+
+function resetDatabase(){
+  if(!confirm('Yakin reset seluruh database ke data awal?')) return;
+  DB.set('students', initialStudents);
+  DB.set('attendance', []);
+  students = initialStudents;
+  attendance = [];
+  toast('Database direset','success');
+  renderSettings();
+}
+
+/* ============ THEME ============ */
+function toggleTheme(){
+  const current = document.documentElement.dataset.theme;
+  const next = current==='dark'?'light':'dark';
+  document.documentElement.dataset.theme = next;
+  DB.set('theme', next);
+  $('themeIcon').textContent = next==='dark'?'light_mode':'dark_mode';
+}
+
+/* ============ INIT ============ */
+window.addEventListener('DOMContentLoaded', ()=>{
+  // Load theme
+  const savedTheme = DB.get('theme','light');
+  document.documentElement.dataset.theme = savedTheme;
+  $('themeIcon').textContent = savedTheme==='dark'?'light_mode':'dark_mode';
+  
+  // Clean expired tokens
+  const activeTokens = DB.get('activeTokens') || {};
+  const now = Date.now();
+  Object.keys(activeTokens).forEach(k=>{
+    if(now > activeTokens[k].expires) delete activeTokens[k];
+  });
+  DB.set('activeTokens', activeTokens);
+  
+  // Hide loader
+  setTimeout(()=>{
+    $('loader').style.opacity = '0';
+    setTimeout(()=>{
+      $('loader').style.display = 'none';
+      route();
+    },400);
+  }, 800);
+});
+</script>
+</body>
+</html>
+
